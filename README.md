@@ -1,5 +1,7 @@
 # NewsGuardian - AI-Powered Fake News Detector
 
+![NewsGuardian Screenshot](./images/image.png)
+
 NewsGuardian is a Chrome browser extension designed to help users critically evaluate online content. By leveraging the power of Large Language Models, this tool provides a rapid credibility analysis of any selected text, helping to combat the spread of misinformation in a real-time browsing environment.
 
 ---
