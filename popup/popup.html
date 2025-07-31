@@ -31,9 +31,11 @@
         <h1 class="text-xl font-bold text-gray-900">NewsGuardian</h1>
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
     </div>
-    <p class="text-sm text-gray-500 mt-1 mb-4">Select text on a page and click Analyze.</p>
+    <p id="instructionText" class="text-sm text-gray-500 mt-1 mb-4">Select text on a page to enable analysis.</p>
 
-    <button id="analyzeBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out">
+    <!-- ** UPDATED BUTTON ** -->
+    <!-- Added the 'disabled' attribute and classes for the disabled state -->
+    <button id="analyzeBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
         Analyze Selected Text
     </button>
 
