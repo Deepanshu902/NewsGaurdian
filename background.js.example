@@ -1,0 +1,97 @@
+// background.js
+
+// IMPORTANT: PASTE YOUR OPENROUTER API KEY HERE
+const OPENROUTER_API_KEY = "Enter Your OpenRouter API key";
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'ANALYZE_TEXT') {
+    analyzeTextWithAI(request.text)
+      .then(sendResponse)
+      .catch(error => sendResponse({ error: error.message }));
+    return true; // Indicates we will send a response asynchronously.
+  }
+});
+
+async function analyzeTextWithAI(text) {
+  const apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+
+  // **UPDATED PROMPT**
+  // We are now asking for an "analysis_breakdown" object with specific scores.
+  const prompt = `
+    You are NewsGuardian, a meticulous fact-checking AI. Analyze the credibility of the following text.
+
+    1.  Provide a 'percentage' score (0-100) indicating the likelihood of it being fake news.
+    2.  Provide a 'reasons' array with 3-4 bullet points explaining your analysis.
+    3.  Provide an 'analysis_breakdown' object with scores from 0 (low) to 10 (high) for the following categories:
+        - "sensationalism": How much does it use sensationalist, clickbait, or emotionally charged language?
+        - "bias": How biased or one-sided does the reporting seem?
+        - "reliability": How reliable are the sources and claims? (A high score means LOW reliability).
+
+    The text to analyze is:
+    ---
+    "${text.substring(0, 3500)}"
+    ---
+
+    Respond ONLY with a valid JSON object in this exact format:
+    {
+      "percentage": <number>,
+      "reasons": ["<string>", "<string>", ...],
+      "analysis_breakdown": {
+        "sensationalism": <number>,
+        "bias": <number>,
+        "reliability": <number>
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'mistralai/mistral-small-3.2-24b-instruct:free', // Using the model you found!
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: "json_object" },
+        max_tokens: 500
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error?.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+
+    if (!data.choices?.[0]?.message?.content) {
+      console.error("Invalid response structure from API:", data);
+      throw new Error("AI response was missing the expected content.");
+    }
+
+    const content = data.choices[0].message.content;
+
+    try {
+      const parsedContent = JSON.parse(content);
+
+      // **UPDATED VALIDATION**
+      // Now we check for the new analysis_breakdown object as well.
+      if (typeof parsedContent.percentage !== 'number' || !Array.isArray(parsedContent.reasons) || typeof parsedContent.analysis_breakdown !== 'object') {
+        throw new Error("AI response JSON was not in the expected format.");
+      }
+      
+      return parsedContent;
+
+    } catch (parseError) {
+      console.error("Failed to parse JSON from AI response. Raw content:", content);
+      throw new Error("The AI returned invalid data that could not be understood.");
+    }
+
+  } catch (error) {
+    console.error('Error in analyzeTextWithAI function:', error);
+    throw new Error(`API call failed: ${error.message}`);
+  }
+}
