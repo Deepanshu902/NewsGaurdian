@@ -1,5 +1,10 @@
 # NewsGuardian - AI-Powered Fake News Detector
 
+
+<p align="center">
+  <img width="450" src="./images/news.png" alt="NewsGuardian Logo a news">
+</p>
+
 <p align="center">
   <img width="450" src="./images/image.png" alt="NewsGuardian analyzing a news headline">
 </p>
