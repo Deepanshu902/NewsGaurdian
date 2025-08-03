@@ -33,9 +33,11 @@
     </div>
     <p id="instructionText" class="text-sm text-gray-500 mt-1 mb-4">Select text on a page to enable analysis.</p>
 
-    <!-- ** UPDATED BUTTON ** -->
-    <!-- Added the 'disabled' attribute and classes for the disabled state -->
-    <button id="analyzeBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+    <!-- The button initially starts as DISABLED and with correct classes for JS to work -->
+    <button id="analyzeBtn" 
+        class="w-full font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out bg-gray-400 cursor-not-allowed"
+        disabled
+    >
         Analyze Selected Text
     </button>
 
@@ -59,6 +61,6 @@
         <span class="block sm:inline" id="errorMessage"></span>
     </div>
 
-    <script src="script.js"></script> 
+    <script src="script.js"></script>
 </body>
 </html>

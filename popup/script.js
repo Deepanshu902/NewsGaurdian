@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    
-
+    // Button and DOM elements
     const analyzeBtn = document.getElementById('analyzeBtn');
     const instructionText = document.getElementById('instructionText');
     const resultDiv = document.getElementById('result');
@@ -11,52 +10,59 @@ document.addEventListener('DOMContentLoaded', () => {
     const verdictP = document.getElementById('verdict');
     const reasonsUl = document.getElementById('reasons');
 
-    // --- Function to get selected text (will be injected into the page) ---
+    // Helper: Set button enabled/disabled & style explicitly
+    function setButtonState(isEnabled) {
+        analyzeBtn.disabled = !isEnabled;
+        if (isEnabled) {
+            analyzeBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+            analyzeBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+        } else {
+            analyzeBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+            analyzeBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+        }
+    }
+
+    // Returns selected text as string (injected into page)
     function getSelectedText() {
-        // Using trim() to ensure whitespace-only selections are ignored
         return window.getSelection().toString().trim();
     }
 
-    // --- Check for selected text as soon as the popup opens ---
-    // This logic now explicitly enables or disables the button.
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        // A tab might not be available (e.g., on the new tab page).
-        if (tabs && tabs[0]) {
-            chrome.scripting.executeScript(
-                {
-                    target: { tabId: tabs[0].id },
-                    function: getSelectedText,
-                },
-                (injectionResults) => {
-                    // It's good practice to check for injection errors.
-                    if (chrome.runtime.lastError) {
-                        console.warn("NewsGuardian: Could not check for selected text. " + chrome.runtime.lastError.message);
-                        analyzeBtn.disabled = true;
-                        instructionText.textContent = "Select text on a page to enable analysis.";
-                        return;
+    // Query for selected text & update button
+    function checkSelectionAndUpdateUI() {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs && tabs[0]) {
+                chrome.scripting.executeScript(
+                    {
+                        target: { tabId: tabs[0].id },
+                        function: getSelectedText,
+                    },
+                    (injectionResults) => {
+                        if (chrome.runtime.lastError) {
+                            setButtonState(false);
+                            instructionText.textContent = "Select text on a page to enable analysis.";
+                            return;
+                        }
+                        const textSelected = injectionResults && injectionResults[0] && injectionResults[0].result;
+                        if (textSelected) {
+                            setButtonState(true);
+                            instructionText.textContent = "Text selected! Click Analyze to continue.";
+                        } else {
+                            setButtonState(false);
+                            instructionText.textContent = "Select text on a page to enable analysis.";
+                        }
                     }
+                );
+            } else {
+                setButtonState(false);
+                instructionText.textContent = "Cannot analyze text on this page.";
+            }
+        });
+    }
 
-                    // The result will be an empty string if nothing is selected (or was trimmed).
-                    if (injectionResults && injectionResults[0] && injectionResults[0].result) {
-                        // Text IS selected
-                        analyzeBtn.disabled = false;
-                        instructionText.textContent = "Text selected! Click Analyze to continue.";
-                    } else {
-                        // Text IS NOT selected
-                        analyzeBtn.disabled = true;
-                        instructionText.textContent = "Select text on a page to enable analysis.";
-                    }
-                }
-            );
-        } else {
-            // This handles cases where there's no active tab to inject into.
-            analyzeBtn.disabled = true;
-            instructionText.textContent = "Cannot analyze text on this page.";
-        }
-    });
+    // On DOM ready, verify initial button state
+    checkSelectionAndUpdateUI();
 
-    // --- Listen for clicks on the "Analyze" button ---
-    // This will only fire if the button is NOT disabled.
+    // Listen for clicks on Analyze
     analyzeBtn.addEventListener('click', () => {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             chrome.scripting.executeScript(
@@ -65,9 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     function: getSelectedText,
                 },
                 (injectionResults) => {
-                    // Re-check for text in case it was deselected.
                     const selectedText = injectionResults[0].result;
-                    if (selectedText) { // The injected function now trims, so this check is sufficient.
+                    if (selectedText) {
                         showLoading();
                         chrome.runtime.sendMessage(
                             { type: 'ANALYZE_TEXT', text: selectedText },
@@ -81,9 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         );
                     } else {
-                        // This is a fallback in case the selection disappears.
                         showError("The selected text was lost. Please select it again.");
-                        analyzeBtn.disabled = true; // Re-disable it.
+                        setButtonState(false);
                         instructionText.textContent = "Select text on a page to enable analysis.";
                     }
                 }
@@ -91,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- Helper functions to show/hide elements ---
+    // Helper functions for UI
     function displayResult(data) {
         resultDiv.classList.remove('hidden');
         errorDiv.classList.add('hidden');
@@ -133,4 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
         errorDiv.classList.remove('hidden');
         errorMessageSpan.textContent = message;
     }
+
+    // Optional: listen for focus (when popup/body refocuses, try to update button state)
+    window.addEventListener('focus', checkSelectionAndUpdateUI);
+
 });
